@@ -1,4 +1,4 @@
-# Real_DeepFake_Image_Detection
+# DeepFake_Image_Detection
 
 | Categories                    | prithivMLmods/Deep-Fake-Detector-Model | ashish-001/deepfake-detection-using-ViT | prithivMLmods/AI-vs-Deepfake-vs-Real | openai/clip-vit-base-patch32 | dima806/ai_vs_real_image_detection | dima806/deepfake_vs_real_image_detection | prithivMLmods/Deep-Fake-Detector-v2-Model |
 | ----------------------------- | -------------------------------------- | --------------------------------------- | ------------------------------------ | ---------------------------- | ---------------------------------- | ---------------------------------------- | ----------------------------------------- |
