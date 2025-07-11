@@ -1,7 +1,6 @@
 import streamlit as st
 from PIL import Image
 import torch
-import matplotlib.pyplot as plt
 import torch.nn.functional as F
 from transformers import (
     ViTForImageClassification,
@@ -49,45 +48,12 @@ def apply_theme(theme_choice):
         section[data-testid="stSidebar"] * {{
             color: white !important;
         }}
-        div[data-baseweb="select"] > div {{
-            background-color: #444444 !important;
-            color: white !important;
-            border-radius: 5px;
-        }}
-        div[data-baseweb="select"] [role="option"] {{
-            background-color: #555555 !important;
-            color: white !important;
-        }}
-        .stFileUploader > label {{
-            color: {upload_text_color} !important;
-        }}
-        .stSpinner {{
-            color: {analyzing_text_color} !important;
-        }}
-        .stFileUploader > div {{
-            background-color: {file_button_color} !important;
-            border-radius: 5px !important;
-        }}
-        .stFileUploader > div:hover {{
-            background-color: {file_button_hover_color} !important;
-        }}
-        .stButton > button {{
-            background-color: {deploy_button_color} !important;
-            color: white !important;
-            border-radius: 5px !important;
-            padding: 10px 20px;
-            font-size: 18px;
-            font-weight: bold;
-        }}
-        .stButton > button:hover {{
-            background-color: {deploy_button_hover_color} !important;
-        }}
         </style>
     """, unsafe_allow_html=True)
 
 # ------------------- MODEL SETUP ----------------------
 MODEL_MAPPING = {
-    "prithivMLmods/Deep-Fake-Detector-Model": ("ViTImageProcessor", ViTForImageClassification),
+    "prithivMLmods/Deep-Fake-Detector-Model": ("AutoImageProcessor", AutoModelForImageClassification),
     "ashish-001/deepfake-detection-using-ViT": ("AutoImageProcessor", AutoModelForImageClassification),
     "prithivMLmods/AI-vs-Deepfake-vs-Real": ("ViTImageProcessor", ViTForImageClassification),
     "openai/clip-vit-base-patch32": ("CLIPProcessor", CLIPModel),
@@ -180,14 +146,16 @@ if uploaded_files and (model_choice or predict_all):
     st.divider()
 
     if predict_all:
+        st.subheader("🖼️ Uploaded Images")
+        cols = st.columns(5)
+        for i, uploaded_file in enumerate(uploaded_files):
+            image = Image.open(uploaded_file)
+            with cols[i % 5]:
+                st.image(image, caption=f"Image {i+1}", use_container_width=True, clamp=True)
+        st.divider()
+
         for model_name in MODEL_MAPPING.keys():
             with st.container():
-                st.markdown(
-                    f"<div style='font-size: 16px;'>"
-                    f"<b>Model:</b> <code>{model_name}</code><br>",
-                    unsafe_allow_html=True
-                )
-
                 label_counter = Counter()
                 avg_confidences = []
                 cumulative_probs = defaultdict(float)
@@ -205,23 +173,34 @@ if uploaded_files and (model_choice or predict_all):
                 most_common_label = label_counter.most_common(1)[0][0]
                 avg_conf = sum(avg_confidences) / total_images
 
+                # ✅ Styled output section
+                color_map = {
+                    "Real": "green",
+                    "Fake": "red",
+                    "AI": "orange",
+                    "Deepfake": "red",
+                    "Artificial": "orange"
+                }
+                prediction_color = color_map.get(most_common_label, "blue")
+
                 st.markdown(
-                    f"<div style='font-size: 14px;'>"
-                    f"<b>Majority Prediction:</b> <code>{most_common_label}</code><br>"
-                    f"<b>Average Confidence:</b> <code>{avg_conf * 100:.2f}%</code><br>",
+                    f"""
+                    <div style='font-size: 16px; line-height: 1.8;'>
+                    🔍 <b>Model:</b> <code>{model_name}</code><br>
+                    🧾 <b>Majority Prediction:</b> <span style='color:{prediction_color}; font-weight:bold;'>{most_common_label}</span><br>
+                    📊 <b>Average Confidence:</b> <span style='color:green;'>{avg_conf * 100:.2f}%</span>
+                    </div>
+                    """,
                     unsafe_allow_html=True
                 )
 
-                st.markdown("<b style='font-size: 14px;'>Average Class Probabilities:</b>", unsafe_allow_html=True)
+                st.subheader("📈 Average Class Probabilities")
                 for cls, total_prob in cumulative_probs.items():
                     avg_prob = total_prob / total_images
-                    bar_color = "green" if "real" in cls.lower() else ("red" if "fake" in cls.lower() else "orange")
-                    st.progress(avg_prob, text=f"{cls}: {avg_prob * 100:.2f}%")
+                    st.markdown(f"**{cls}: {avg_prob * 100:.2f}%**")
+                    st.progress(avg_prob)
 
-                st.markdown("</div>", unsafe_allow_html=True)
                 st.divider()
-
-
 
     else:
         label_counter = Counter()
@@ -253,4 +232,5 @@ if uploaded_files and (model_choice or predict_all):
         st.subheader("📈 Average Class Probabilities")
         for cls, total_prob in cumulative_probs.items():
             avg_prob = total_prob / total_images
-            st.progress(avg_prob, text=f"{cls}: {avg_prob * 100:.2f}%")
+            st.markdown(f"**{cls}: {avg_prob * 100:.2f}%**")
+            st.progress(avg_prob)
